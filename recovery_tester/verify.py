@@ -7,7 +7,14 @@ from pathlib import Path
 from typing import Any
 
 from .exceptions import OperationalError
-from .utils import row_count, schema_fingerprint, sha256_file, supported_tables, table_content_hash, utc_now_iso
+from .utils import (
+    row_count,
+    schema_fingerprint,
+    sha256_file,
+    supported_tables,
+    table_content_hash,
+    utc_now_iso,
+)
 
 
 def _load_manifest(manifest_path: Path) -> dict[str, Any]:
@@ -168,21 +175,22 @@ def verify_restored_db(restored_db: Path, manifest: dict[str, Any]) -> tuple[lis
 def restore_and_verify(backup_path: Path, manifest_path: Path, restore_dir: Path, timeout_seconds: float = 5.0) -> dict[str, Any]:
     run_started = utc_now_iso()
     manifest = _load_manifest(manifest_path)
-    manifest_backup = manifest_path.with_name(str(manifest["backup_file"]))
-    if backup_path.name != manifest_backup.name:
-        raise OperationalError(
-            f"Backup file name mismatch with manifest: backup={backup_path.name}, manifest={manifest_backup.name}"
-        )
 
     checks = _evaluate_backup_and_manifest(backup_path, manifest)
     restore_db = restore_dir / "restored.sqlite"
 
     restore_duration = 0.0
     verify_duration = 0.0
-    if all(check["ok"] for check in checks):
-        _, _, restore_duration = restore_backup(backup_path, restore_db, timeout_seconds=timeout_seconds)
-        verify_checks, verify_duration = verify_restored_db(restore_db, manifest)
-        checks.extend(verify_checks)
+    backup_exists = any(check["name"] == "backup_exists" and check["ok"] for check in checks)
+    if backup_exists:
+        try:
+            _, _, restore_duration = restore_backup(backup_path, restore_db, timeout_seconds=timeout_seconds)
+            verify_checks, verify_duration = verify_restored_db(restore_db, manifest)
+            checks.extend(verify_checks)
+        except OperationalError as err:
+            if str(err).startswith("Refusing overwrite"):
+                raise
+            checks.append({"name": "restore_or_verify_error", "ok": False, "detail": str(err)})
 
     overall_ok = all(check["ok"] for check in checks)
     run_ended = utc_now_iso()

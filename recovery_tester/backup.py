@@ -6,12 +6,12 @@ from pathlib import Path
 
 from .exceptions import OperationalError
 from .utils import (
+    row_count,
     schema_fingerprint,
     sha256_file,
     supported_tables,
     table_content_hash,
     utc_now_iso,
-    row_count,
 )
 
 
