@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+artifacts/
+docker-output/
+*.sqlite
+*.sqlite3
+*.db
+*.manifest.json
+*.html
+*.json
+!pyproject.toml

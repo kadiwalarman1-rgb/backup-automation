@@ -1,0 +1,7 @@
+services:
+  recovery-tester:
+    build: .
+    image: backup-recovery-tester:latest
+    command: ["python", "-m", "recovery_tester", "demo", "--artifacts-dir", "/app/output"]
+    volumes:
+      - ./docker-output:/app/output
